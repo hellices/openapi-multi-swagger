@@ -1,0 +1,78 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    tags:
+      - 'v*.*.*' # Matches tags like v1.0.0, v0.1.2, etc.
+
+jobs:
+  lint-and-build:
+    # This job runs only on Pull Requests to the main branch
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Specify your Go version
+
+      - name: Run linters
+        run: |
+          go install golang.org/x/lint/golint@latest
+          golint -set_exit_status ./...
+          go vet ./...
+          # Add other linters if needed, e.g., gofmt -s -w .
+          # Consider using a tool like golangci-lint for comprehensive linting
+
+      - name: Build application
+        run: go build -v -o openapi-multi-swagger cmd/main.go
+
+  build-and-push-docker-image:
+    # This job runs only when a tag is pushed
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # Required to push to GHCR
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22' # Specify your Go version
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/openapi-multi-swagger
+          # For tags like v1.2.3, it will create Docker tags: latest, 1, 1.2, 1.2.3
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: openapi-multi-swagger-service
+  labels:
+    app: openapi-multi-swagger
+spec:
+  type: ClusterIP # Change to LoadBalancer for external access, or use an Ingress controller
+  selector:
+    app: openapi-multi-swagger
+  ports:
+  - protocol: TCP
+    port: 80 # Port the service will be available on within the cluster
+    targetPort: 9090 # Port the application is listening on in the container (must match PORT env)

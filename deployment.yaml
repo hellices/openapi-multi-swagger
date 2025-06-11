@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openapi-multi-swagger
+  labels:
+    app: openapi-multi-swagger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: openapi-multi-swagger
+  template:
+    metadata:
+      labels:
+        app: openapi-multi-swagger
+    spec:
+      # If your Kubernetes cluster requires specific RBAC permissions for the pod to read ConfigMaps,
+      # you might need to specify a serviceAccountName here and create corresponding Role and RoleBinding.
+      # serviceAccountName: openapi-multi-swagger-sa
+      containers:
+      - name: openapi-multi-swagger
+        # Replace with your actual image path, e.g., ghcr.io/your-username/openapi-multi-swagger:latest
+        image: ghcr.io/your-github-username/openapi-multi-swagger:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9090 # Should match the PORT env variable if changed
+        env:
+        - name: NAMESPACE
+          value: "default" # Or use valueFrom: fieldRef: fieldPath: metadata.namespace to use the pod's namespace
+        - name: CONFIGMAP_NAME
+          value: "openapi-specs"
+        - name: PORT
+          value: "9090"
+        - name: WATCH_INTERVAL_SECONDS
+          value: "10"
+        - name: LOG_LEVEL # Optional: trace, debug, info, warn, error, fatal, panic (defaults to info)
+          value: "info"
+        - name: DEV_MODE # Optional: set to "true" for more verbose logging (overrides LOG_LEVEL to debug)
+          value: "false"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "256Mi"
