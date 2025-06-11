@@ -1,0 +1,24 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default # Swagger UI 서버가 실행되는 네임스페이스
+  name: configmap-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list"]
+  resourceNames: ["openapi-specs"] # 특정 ConfigMap 이름으로 제한 (선택 사항이지만 권장)
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-configmaps-default-sa
+  namespace: default # Swagger UI 서버가 실행되는 네임스페이스
+subjects:
+- kind: ServiceAccount
+  name: default # 현재 사용 중인 서비스 어카운트
+  namespace: default
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io

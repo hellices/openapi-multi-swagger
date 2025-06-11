@@ -1,0 +1,50 @@
+# OS-specific files
+*.DS_Store
+Thumbs.db
+
+# IDE-specific files and directories
+*.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when run with the -o option
+*.out
+
+# Profiling data
+*.prof
+
+# Dependency directories (uncomment if you use vendoring)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Environment variable files
+# Ignore all .env files, but not .env.example or similar templates
+.env
+.env.*
+*.env
+!.env.example
+!.env.test
+!.env.prod
+# If you don't use .env.test or .env.prod, you can remove those specific ! lines.
+
+# Build output
+openapi-multi-swagger # Specific build output
+
+# Log files
+*.log
+
+# Debugger files (e.g. Delve)
+__debug_bin

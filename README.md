@@ -127,9 +127,51 @@ The application can be configured using the following environment variables:
 
 ## Kubernetes Deployment Examples
 
-Below are example `deployment.yaml` and `service.yaml` files for deploying the application to Kubernetes.
+Below are example `deployment.yaml`, `service.yaml`, and `role.yaml` files for deploying the application to Kubernetes. These files can be found in the `k8s-manifests/` directory.
 
-**`deployment.yaml`:**
+**RBAC Configuration (`k8s-manifests/role.yaml`):**
+
+If your Kubernetes cluster uses Role-Based Access Control (RBAC) and the default service account for your pod does not have permission to read ConfigMaps, you will need to grant these permissions. The `role.yaml` file defines a `Role` that grants `get`, `watch`, and `list` permissions on ConfigMaps (optionally restricted to a specific `resourceNames`). The `RoleBinding` then binds this `Role` to a `ServiceAccount`.
+
+You would typically create a dedicated `ServiceAccount` for your application and reference it in your `Deployment`'s `spec.template.spec.serviceAccountName`.
+
+**`k8s-manifests/role.yaml`:**
+```yaml
+# filepath: /home/inhwanhwang/golang/openapi-multi-swagger/k8s-manifests/role.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  namespace: default # Should match the namespace of your deployment and ConfigMap
+  name: configmap-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["configmaps"]
+  verbs: ["get", "watch", "list"]
+  # Optional: Restrict to a specific ConfigMap name if desired
+  # resourceNames: ["openapi-specs"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: read-configmaps-binding # Give a descriptive name
+  namespace: default # Should match the namespace of your deployment and ConfigMap
+subjects:
+# This binds the role to the default service account in the 'default' namespace.
+# For production, it's recommended to create a specific ServiceAccount for your application,
+# grant the Role to that ServiceAccount, and then specify that ServiceAccount
+# in your Deployment's pod template (spec.template.spec.serviceAccountName).
+- kind: ServiceAccount
+  name: default # Or your specific service account name
+  namespace: default # Or your specific service account namespace
+roleRef:
+  kind: Role
+  name: configmap-reader
+  apiGroup: rbac.authorization.k8s.io
+```
+
+Apply these RBAC rules: `kubectl apply -f k8s-manifests/role.yaml -n <your-namespace>`
+
+**`k8s-manifests/deployment.yaml`:**
 
 ```yaml
 apiVersion: apps/v1
@@ -150,7 +192,8 @@ spec:
     spec:
       # If your Kubernetes cluster requires specific RBAC permissions for the pod to read ConfigMaps,
       # you might need to specify a serviceAccountName here and create corresponding Role and RoleBinding.
-      # serviceAccountName: openapi-multi-swagger-sa
+      # Ensure the ServiceAccount 'default' (or your custom SA) in this namespace has the 'configmap-reader' Role bound to it.
+      serviceAccountName: default # Or your custom service account
       containers:
       - name: openapi-multi-swagger
         # Replace with your actual image path, e.g., ghcr.io/your-username/openapi-multi-swagger:latest
@@ -182,7 +225,7 @@ spec:
             memory: "256Mi"
 ```
 
-**`service.yaml`:**
+**`k8s-manifests/service.yaml`:**
 
 ```yaml
 apiVersion: v1
@@ -204,7 +247,7 @@ spec:
 **Notes:**
 *   Remember to replace `ghcr.io/your-github-username/openapi-multi-swagger:latest` with the actual path to your Docker image.
 *   If you need the service to be accessible externally, you might change `spec.type` in `service.yaml` to `LoadBalancer` or set up an Ingress resource.
-*   The `deployment.yaml` includes placeholders for `LOG_LEVEL`, `DEV_MODE`, and `SWAGGER_BASE_PATH` environment variables.
+*   The `deployment.yaml` includes placeholders for `LOG_LEVEL`, `DEV_MODE`, and `SWAGGER_BASE_PATH` environment variables. It also now includes a `serviceAccountName` field which you should ensure matches the ServiceAccount bound by your `RoleBinding`.
 
 ## Project Structure
 
@@ -216,8 +259,10 @@ spec:
 ├── server.go                 # Contains the core HTTP server logic and Swagger UI setup (package swagger)
 ├── cmd/
 │   └── main.go               # Main application entry point, Kubernetes client logic, ConfigMap watcher
-├── deployment.yaml           # Example Kubernetes Deployment manifest
-├── service.yaml              # Example Kubernetes Service manifest
+├── k8s-manifests/            # Example Kubernetes manifests
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── role.yaml
 └── swagger-ui/               # Static assets for Swagger UI
     ├── index.html            # Main Swagger UI page
     └── assets/               # CSS, JS, and other assets for Swagger UI

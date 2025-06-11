@@ -20,7 +20,7 @@ spec:
       containers:
       - name: openapi-multi-swagger
         # Replace with your actual image path, e.g., ghcr.io/your-username/openapi-multi-swagger:latest
-        image: ghcr.io/your-github-username/openapi-multi-swagger:latest
+        image: ghcr.io/hellices/openapi-multi-swagger:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 9090 # Should match the PORT env variable if changed

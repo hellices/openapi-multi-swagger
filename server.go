@@ -30,7 +30,6 @@ const (
 // Constants for dev mode
 const (
 	devModeTrue                  = "true"
-	devModeClusterInternalSuffix = ".svc.cluster.local:8080" // Specific part of internal K8s URLs to replace
 	devModeLocalhostReplacement  = "http://localhost:8080"   // Replacement URL for local development
 )
 
@@ -296,11 +295,12 @@ func (s *Server) serveIndividualSpec(w http.ResponseWriter, r *http.Request) {
 	urlStr := metadata.URL
 	if os.Getenv(envVarDevMode) == devModeTrue {
 		// In development mode, rewrite any cluster URLs to localhost for easier local testing
-		if strings.Contains(urlStr, devModeClusterInternalSuffix) {
-			originalURL := urlStr
-			urlStr = devModeLocalhostReplacement + strings.Split(urlStr, devModeClusterInternalSuffix)[1]
-			s.logger.Debugf(logMsgDevModeURLRewrite, originalURL, urlStr)
-		}
+		// Example: if you wanted to replace all http with https in dev mode
+		// if strings.HasPrefix(urlStr, "http://") {
+		//  originalURL := urlStr
+		//  urlStr = strings.Replace(urlStr, "http://", "https://", 1)
+		//  s.logger.Debugf("DEV_MODE: Rewriting URL %s to %s", originalURL, urlStr)
+		// }
 	}
 	resp, err := http.Get(urlStr)
 	if err != nil {
@@ -403,11 +403,11 @@ func (s *Server) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	finalTargetURL := targetProxyURL
 
 	if os.Getenv(envVarDevMode) == devModeTrue {
-		if strings.Contains(finalTargetURL, devModeClusterInternalSuffix) {
-			originalURL := finalTargetURL
-			finalTargetURL = devModeLocalhostReplacement + strings.Split(finalTargetURL, devModeClusterInternalSuffix)[1]
-			s.logger.Debugf(logMsgDevModeURLRewrite, originalURL, finalTargetURL)
-		}
+		// REMOVED: devModeClusterInternalSuffix logic
+		// Example: if you wanted to ensure all proxy requests go to localhost in dev mode
+		// if !strings.HasPrefix(finalTargetURL, "http://localhost") && !strings.HasPrefix(finalTargetURL, "https://localhost") {
+		//  s.logger.Debugf("DEV_MODE: Potentially redirecting proxy for %s to a localhost equivalent if applicable", finalTargetURL)
+		// }
 	}
 	s.logger.Debugf(logMsgProxyingRequestTo, r.URL.Path, finalTargetURL)
 
